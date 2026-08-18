@@ -191,7 +191,8 @@ groups = {
             "Bucharest",
             "Giurgiu",
             "Urziceni",
-            "Hirsova"
+            "Hirsova",
+            "Eforie"
         ]
     },
 
@@ -201,7 +202,7 @@ groups = {
             "Vaslui",
             "Iasi",
             "Neamt",
-            "Eforie"
+           
         ]
     }
 }
@@ -230,6 +231,7 @@ city_to_group = {
     "Vaslui": "E",
     "Iasi": "E",
     "Neamt": "E",
+    "Eforie": "E"
 }
 
 group_edges = {
