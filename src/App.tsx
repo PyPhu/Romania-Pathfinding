@@ -1,167 +1,162 @@
-import { useState } from 'react';
-import type { CSSProperties } from 'react';
-import './App.css'; // คุณสามารถปรับแต่ง CSS เพิ่มเติมในไฟล์นี้ได้
+import { useState } from "react";
+import "./App.css";
+
+const cities = [
+  "Arad",
+  "Bucharest",
+  "Craiova",
+  "Drobeta",
+  "Eforie",
+  "Fagaras",
+  "Giurgiu",
+  "Hirsova",
+  "Iasi",
+  "Lugoj",
+  "Mehadia",
+  "Neamt",
+  "Oradea",
+  "Pitesti",
+  "Rimnicu Vilcea",
+  "Sibiu",
+  "Timisoara",
+  "Urziceni",
+  "Vaslui",
+];
+
+interface PathResult {
+  path: string[];
+  cost: number;
+}
 
 function App() {
-  const [showResults, setShowResults] = useState(false);
+  const [start, setStart] = useState("");
+  const [goal, setGoal] = useState("");
 
-  const handleFindPath = () => {
-    setShowResults(true);
+  const [result, setResult] = useState<PathResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const findPath = async () => {
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    if (!start || !goal){
+      setError("Please select both start and goal cities.");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/path", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          start: start,
+          goal: goal,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("API request failed");
+      }
+
+      const data: PathResult = await response.json();
+
+      setResult(data);
+    } catch (error) {
+      setError("cant connect backend!");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div style={styles.container}>
-      {/* Header */}
-      <h2 style={styles.header}>Romania Pathfinding</h2>
-      <hr style={styles.divider} />
+    <div className="app">
+      <h1>Romania Pathfinding</h1>
 
-      {/* Controls Section */}
-      <div style={styles.controlsRow}>
-        <div style={styles.controlItem}>
-          <label style={styles.label}>Start</label>
-          <div style={styles.box}>Arad</div>
-        </div>
-        <div style={styles.controlItem}>
-          <label style={styles.label}>Goal</label>
-          <div style={styles.box}>Iasi</div>
-        </div>
-        <div style={styles.controlItem}>
-          <label style={styles.label}>Algorithm</label>
-          <div style={styles.box}>Hierarchical A*</div>
-        </div>
-      </div>
+      <p className="subtitle">
+        Hierarchical A* Search
+      </p>
 
-      <div style={styles.buttonContainer}>
-        <button style={styles.button} onClick={handleFindPath}>
-          [ Find Path ]
+      <div className="controls">
+
+        <div className="input-group">
+          <label>Start City</label>
+
+          <select
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+          >
+            <option value="" disabled>-- Select Start City --</option>
+            {cities.map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="input-group">
+          <label>Goal City</label>
+
+          <select
+            value={goal}
+            onChange={(e) => setGoal(e.target.value)}
+          >
+            <option value="" disabled>-- Select Goal City --</option>
+            {cities.map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          onClick={findPath}
+          disabled={loading}
+        >
+          {loading ? "Searching..." : "Find Path"}
         </button>
+
       </div>
 
-      <hr style={styles.divider} />
+      {error && (
+        <div className="error">
+          {error}
+        </div>
+      )}
 
-      {/* Map Section */}
-      <div style={styles.mapSection}>
-        <h3 style={styles.mapTitle}>ROMANIA MAP</h3>
-        <pre style={styles.asciiMap}>
-{`       ●────●                       
-      /      \\                      
-     ●        ●────●                
-               \\      \\             
-                ●─────●────●        
-                      ╲             
-                       ●────●       `}
-        </pre>
-        <p style={styles.highlightText}>Highlighted Path</p>
-      </div>
+      {result && (
+        <div className="result">
 
-      <hr style={styles.divider} />
+          <h2>Result</h2>
 
-      {/* Results Section */}
-      <div style={styles.resultsSection}>
-        <h3 style={styles.resultsTitle}>Results</h3>
-        {showResults ? (
-          <div style={styles.resultsData}>
-            <p><strong>Group Path:</strong> A → B → C → D</p>
-            <br />
-            <p><strong>Total Cost:</strong> 709 km</p>
-            <p><strong>Nodes Explored:</strong> 15</p>
-            <p><strong>Runtime:</strong> 0.41 ms</p>
+          <div className="path">
+            {result.path.map((city, index) => (
+              <span key={city}>
+                {city}
+
+                {index < result.path.length - 1 && (
+                  <span className="arrow">
+                    →
+                  </span>
+                )}
+              </span>
+            ))}
           </div>
-        ) : (
-          <p style={{ color: '#888' }}>Please click "[ Find Path ]" to see results...</p>
-        )}
-      </div>
+
+          <div className="cost">
+            Total Cost: <strong>{result.cost}</strong>
+          </div>
+
+        </div>
+      )}
     </div>
   );
 }
-
-// ชุดคำสั่งตกแต่งสไตล์เพื่อให้โครงสร้างคล้ายกับหน้าจอในตัวอย่าง
-const styles: { [key: string]: CSSProperties } = {
-  container: {
-    maxWidth: '600px',
-    margin: '40px auto',
-    padding: '20px',
-    border: '2px solid #333',
-    borderRadius: '8px',
-    fontFamily: 'monospace, sans-serif',
-    backgroundColor: '#1e1e1e',
-    color: '#d4d4d4',
-  },
-  header: {
-    textAlign: 'center',
-    margin: '10px 0',
-    letterSpacing: '2px',
-  },
-  divider: {
-    borderColor: '#333',
-    margin: '20px 0',
-  },
-  controlsRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: '20px',
-    padding: '0 20px',
-  },
-  controlItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  label: {
-    marginBottom: '8px',
-    fontSize: '16px',
-  },
-  box: {
-    border: '1px solid #d4d4d4',
-    padding: '8px 16px',
-    borderRadius: '4px',
-    backgroundColor: '#2d2d2d',
-  },
-  buttonContainer: {
-    textAlign: 'center',
-    margin: '20px 0',
-  },
-  button: {
-    backgroundColor: '#333',
-    color: '#fff',
-    border: '1px solid #d4d4d4',
-    padding: '10px 20px',
-    fontSize: '16px',
-    cursor: 'pointer',
-    fontFamily: 'monospace',
-    borderRadius: '4px',
-  },
-  mapSection: {
-    textAlign: 'center',
-    margin: '30px 0',
-  },
-  mapTitle: {
-    marginBottom: '15px',
-    letterSpacing: '1px',
-  },
-  asciiMap: {
-    display: 'inline-block',
-    textAlign: 'left',
-    backgroundColor: '#111',
-    padding: '20px',
-    borderRadius: '8px',
-    lineHeight: '1.2',
-    color: '#4fc1ff',
-  },
-  highlightText: {
-    marginTop: '15px',
-    color: '#ce9178',
-  },
-  resultsSection: {
-    padding: '0 20px',
-  },
-  resultsTitle: {
-    marginBottom: '15px',
-  },
-  resultsData: {
-    lineHeight: '1.6', // ถ้า Error เรื่อง lineHeight ให้เปลี่ยนเป็น '1.6' แทน 1.6
-    fontSize: '15px',
-  }
-};
 
 export default App;

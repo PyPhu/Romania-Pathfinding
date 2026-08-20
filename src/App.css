@@ -1,155 +1,81 @@
-:root {
-  --bg-color: #1e1e1e;
-  --text-color: #d4d4d4;
-  --border-color: #444;
-  --box-bg: #2d2d2d;
-  --map-bg: #111;
-  --highlight: #4fc1ff;
-  --accent: #ce9178;
+.app {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px;
+  font-family: Arial, sans-serif;
 }
 
-body {
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  font-family: 'Courier New', Courier, monospace; /* ใช้ฟอนต์แบบ Terminal */
-  margin: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-}
-
-.container {
-  width: 100%;
-  max-width: 600px;
-  margin: 40px auto;
-  padding: 20px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  background-color: var(--bg-color);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-}
-
-.header {
+h1 {
   text-align: center;
-  margin: 10px 0;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #fff;
+  margin-bottom: 5px;
 }
 
-.divider {
-  border: 0;
-  border-top: 1px dashed var(--border-color);
-  margin: 20px 0;
+.subtitle {
+  text-align: center;
+  color: #666;
+  margin-bottom: 40px;
 }
 
-.controls-row {
+.controls {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding: 0 20px;
+  gap: 20px;
+  align-items: end;
+  justify-content: center;
+  margin-bottom: 40px;
 }
 
-.control-item {
+.input-group {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 8px;
 }
 
-.control-label {
-  margin-bottom: 8px;
-  font-size: 16px;
+.input-group label {
   font-weight: bold;
-  color: var(--accent);
 }
 
-.control-box {
-  border: 1px solid var(--border-color);
-  padding: 8px 16px;
-  border-radius: 4px;
-  background-color: var(--box-bg);
-  min-width: 120px;
-  text-align: center;
+select {
+  padding: 10px;
+  min-width: 180px;
+  font-size: 16px;
 }
 
-.button-container {
-  text-align: center;
+button {
+  padding: 11px 24px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.result {
+  padding: 25px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+}
+
+.result h2 {
+  margin-top: 0;
+}
+
+.path {
+  font-size: 18px;
   margin: 20px 0;
 }
 
-.btn-find {
-  background-color: transparent;
-  color: var(--highlight);
-  border: 2px solid var(--highlight);
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  font-family: inherit;
-  font-weight: bold;
-  border-radius: 4px;
-  transition: all 0.2s ease-in-out;
+.arrow {
+  margin: 0 10px;
+  color: #666;
 }
 
-.btn-find:hover {
-  background-color: var(--highlight);
-  color: var(--map-bg);
-  box-shadow: 0 0 10px rgba(79, 193, 255, 0.4);
+.cost {
+  font-size: 18px;
 }
 
-.btn-find:active {
-  transform: scale(0.95);
-}
-
-.map-section {
-  text-align: center;
-  margin: 30px 0;
-}
-
-.map-title {
-  margin-bottom: 15px;
-  letter-spacing: 1px;
-}
-
-.ascii-map {
-  display: inline-block;
-  text-align: left;
-  background-color: var(--map-bg);
-  padding: 20px;
-  border-radius: 8px;
-  line-height: 1.2;
-  color: #85d885; /* สีเขียวสไตล์ Hacker */
-  border: 1px solid var(--border-color);
-  white-space: pre;
-}
-
-.highlight-text {
-  margin-top: 15px;
-  color: var(--accent);
-  font-style: italic;
-}
-
-.results-section {
-  padding: 0 20px;
-}
-
-.results-title {
-  margin-bottom: 15px;
-  color: #fff;
-}
-
-.results-data p {
-  margin: 8px 0;
-  font-size: 15px;
-}
-
-.results-data strong {
-  color: var(--highlight);
-  display: inline-block;
-  width: 140px;
-}
-
-.waiting-text {
-  color: #888;
-  font-style: italic;
+.error {
+  padding: 15px;
+  margin-bottom: 20px;
+  border: 1px solid #f00;
 }
