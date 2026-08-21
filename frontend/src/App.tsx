@@ -23,16 +23,24 @@ const cities = [
   "Vaslui",
 ];
 
-interface PathResult {
+// โครงสร้างผลลัพธ์ของแต่ละอัลกอริทึม
+interface AlgorithmResult {
   path: string[];
-  cost: number;
+  cost: number | null;
+  visited?: string[];
+}
+
+// โครงสร้าง Response รวมที่ Backend ส่งกลับมา
+interface PathfindingResponse {
+  astar: AlgorithmResult;
+  bfs: AlgorithmResult;
 }
 
 function App() {
   const [start, setStart] = useState("");
   const [goal, setGoal] = useState("");
 
-  const [result, setResult] = useState<PathResult | null>(null);
+  const [result, setResult] = useState<PathfindingResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -62,9 +70,9 @@ function App() {
         throw new Error("API request failed");
       }
 
-      const data: PathResult = await response.json();
-
+      const data: PathfindingResponse = await response.json();
       setResult(data);
+
     } catch (error) {
       setError("cant connect backend!");
       console.error(error);
@@ -131,30 +139,30 @@ function App() {
       )}
 
       {result && (
-        <div className="result">
+  <div className="results-container" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginTop: "24px" }}>
+    
+    {/* Hierarchical A* */}
+    <div className="card" style={{ border: "2px solid #2563eb", padding: "16px", borderRadius: "8px" }}>
+      <h3 style={{ color: "#2563eb", marginTop: 0 }}>Hierarchical A*</h3>
+      <p><strong>Total Cost:</strong> {result.astar.cost ?? "No path"}</p>
+      <p><strong>Hops:</strong> {result.astar.path.length > 0 ? result.astar.path.length - 1 : 0}</p>
+      <div className="path-display">
+        <strong>Path:</strong> {result.astar.path.join(" → ") || "Not found"}
+      </div>
+    </div>
 
-          <h2>Result</h2>
+    {/* BFS */}
+    <div className="card" style={{ border: "2px solid #64748b", padding: "16px", borderRadius: "8px" }}>
+      <h3 style={{ color: "#64748b", marginTop: 0 }}>BFS (Uninformed)</h3>
+      <p><strong>Total Cost:</strong> {result.bfs.cost ?? "No path"}</p>
+      <p><strong>Hops:</strong> {result.bfs.path.length > 0 ? result.bfs.path.length - 1 : 0}</p>
+      <div className="path-display">
+        <strong>Path:</strong> {result.bfs.path.join(" → ") || "Not found"}
+      </div>
+    </div>
 
-          <div className="path">
-            {result.path.map((city, index) => (
-              <span key={city}>
-                {city}
-
-                {index < result.path.length - 1 && (
-                  <span className="arrow">
-                    →
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
-
-          <div className="cost">
-            Total Cost: <strong>{result.cost}</strong>
-          </div>
-
-        </div>
-      )}
+  </div>
+)}
     </div>
   );
 }
