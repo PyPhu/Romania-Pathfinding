@@ -23,6 +23,57 @@ const cities = [
   "Vaslui",
 ];
 
+// Coordinates roughly matching the reference map image, on a 1000x600 canvas
+const cityCoords: Record<string, { x: number; y: number }> = {
+  Oradea: { x: 239, y: 115 },
+  Zerind: { x: 209, y: 172 },
+  Arad: { x: 184, y: 231 },
+  Timisoara: { x: 189, y: 347 },
+  Lugoj: { x: 287, y: 393 },
+  Mehadia: { x: 287, y: 448 },
+  Drobeta: { x: 287, y: 506 },
+  Sibiu: { x: 346, y: 281 },
+  "Rimnicu Vilcea": { x: 380, y: 347 },
+  Craiova: { x: 400, y: 523 },
+  Fagaras: { x: 480, y: 291 },
+  Pitesti: { x: 501, y: 409 },
+  Bucharest: { x: 610, y: 467 },
+  Giurgiu: { x: 574, y: 547 },
+  Urziceni: { x: 686, y: 434 },
+  Hirsova: { x: 792, y: 434 },
+  Eforie: { x: 831, y: 514 },
+  Neamt: { x: 617, y: 166 },
+  Iasi: { x: 709, y: 212 },
+  Vaslui: { x: 752, y: 297 },
+};
+
+// All roads on the map (undirected), with their real distances
+const allEdges: [string, string, number][] = [
+  ["Oradea", "Zerind", 71],
+  ["Oradea", "Sibiu", 151],
+  ["Zerind", "Arad", 75],
+  ["Arad", "Sibiu", 140],
+  ["Arad", "Timisoara", 118],
+  ["Timisoara", "Lugoj", 111],
+  ["Lugoj", "Mehadia", 70],
+  ["Mehadia", "Drobeta", 75],
+  ["Drobeta", "Craiova", 120],
+  ["Craiova", "Rimnicu Vilcea", 146],
+  ["Craiova", "Pitesti", 138],
+  ["Rimnicu Vilcea", "Sibiu", 80],
+  ["Rimnicu Vilcea", "Pitesti", 97],
+  ["Sibiu", "Fagaras", 99],
+  ["Fagaras", "Bucharest", 211],
+  ["Pitesti", "Bucharest", 101],
+  ["Bucharest", "Giurgiu", 90],
+  ["Bucharest", "Urziceni", 85],
+  ["Urziceni", "Hirsova", 98],
+  ["Urziceni", "Vaslui", 142],
+  ["Hirsova", "Eforie", 86],
+  ["Vaslui", "Iasi", 92],
+  ["Iasi", "Neamt", 87],
+];
+
 // โครงสร้างผลลัพธ์ของแต่ละอัลกอริทึม
 interface AlgorithmResult {
   path: string[];
@@ -36,10 +87,10 @@ interface PathfindingResponse {
   bfs: AlgorithmResult;
 }
 
-const STEP_MS = 450;
+const STEP_MS = 500;
 
-// Animated vertical "tree" that reveals one node at a time
-function PathTree({
+// Renders the full Romania map, with the given path animated on top of it
+function RomaniaMap({
   path,
   accentColor,
 }: {
@@ -78,57 +129,116 @@ function PathTree({
     return <div className="empty-path">No path found</div>;
   }
 
-  return (
-    <div className="tree-wrapper">
-      <div className="tree-trunk">
-        {path.map((city, index) => {
-          const isRevealed = index < revealed;
-          const isCurrent = index === revealed - 1 && isAnimating;
-          const isLast = index === path.length - 1;
-          const side = index % 2 === 0 ? "left" : "right";
+  const pathSet = new Set(path);
 
+  return (
+    <div className="map-wrapper">
+      <svg viewBox="0 0 1000 600" className="romania-map">
+        {/* Base road network */}
+        {allEdges.map(([a, b, w]) => {
+          const p1 = cityCoords[a];
+          const p2 = cityCoords[b];
+          if (!p1 || !p2) return null;
+          const midX = (p1.x + p2.x) / 2;
+          const midY = (p1.y + p2.y) / 2;
           return (
-            <div className="tree-row" key={`${city}-${index}`}>
-              {index > 0 && (
-                <div
-                  className={`tree-connector ${
-                    isRevealed ? "connector-active" : ""
-                  }`}
-                  style={{ ["--accent" as string]: accentColor }}
-                />
-              )}
-              <div
-                className={`tree-node-line side-${side} ${
-                  isRevealed ? "node-revealed" : ""
-                } ${isCurrent ? "node-current" : ""}`}
-              >
-                <div
-                  className="tree-dot"
-                  style={{
-                    backgroundColor: isRevealed ? accentColor : undefined,
-                    boxShadow: isCurrent
-                      ? `0 0 0 6px ${accentColor}33`
-                      : "none",
-                  }}
-                />
-                <div
-                  className="tree-card"
-                  style={{
-                    borderColor: isRevealed ? accentColor : undefined,
-                    color: isRevealed ? accentColor : undefined,
-                  }}
-                >
-                  {index === 0 && <span className="tree-tag">START</span>}
-                  {isLast && index !== 0 && (
-                    <span className="tree-tag">GOAL</span>
-                  )}
-                  <span className="tree-city">{city}</span>
-                </div>
-              </div>
-            </div>
+            <g key={`${a}-${b}`}>
+              <line
+                x1={p1.x}
+                y1={p1.y}
+                x2={p2.x}
+                y2={p2.y}
+                className="base-edge"
+              />
+              <text x={midX} y={midY} className="edge-weight">
+                {w}
+              </text>
+            </g>
           );
         })}
-      </div>
+
+        {/* Highlighted path edges, drawn in sequence */}
+        {path.slice(0, -1).map((city, i) => {
+          const next = path[i + 1];
+          const p1 = cityCoords[city];
+          const p2 = cityCoords[next];
+          if (!p1 || !p2) return null;
+          const isDrawn = revealed > i + 1;
+          return (
+            <line
+              key={`path-${city}-${next}`}
+              x1={p1.x}
+              y1={p1.y}
+              x2={p2.x}
+              y2={p2.y}
+              className="path-edge"
+              pathLength={1}
+              style={{
+                stroke: accentColor,
+                strokeDashoffset: isDrawn ? 0 : 1,
+              }}
+            />
+          );
+        })}
+
+        {/* Base city nodes */}
+        {cities.map((city) => {
+          const p = cityCoords[city];
+          if (!p || pathSet.has(city)) return null;
+          return (
+            <g key={city}>
+              <circle cx={p.x} cy={p.y} r={6} className="base-node" />
+              <text x={p.x + 10} y={p.y + 4} className="city-label">
+                {city}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Path city nodes (drawn on top, highlighted as revealed) */}
+        {path.map((city, i) => {
+          const p = cityCoords[city];
+          if (!p) return null;
+          const isRevealed = i < revealed;
+          const isCurrent = i === revealed - 1 && isAnimating;
+          const isStart = i === 0;
+          const isGoal = i === path.length - 1;
+          return (
+            <g key={`${city}-${i}`}>
+              {isCurrent && (
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={12}
+                  className="pulse-ring"
+                  style={{ stroke: accentColor }}
+                />
+              )}
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={isStart || isGoal ? 9 : 7}
+                className="path-node"
+                style={{
+                  fill: isRevealed ? accentColor : undefined,
+                }}
+              />
+              <text
+                x={p.x + 12}
+                y={p.y + 4}
+                className={`city-label path-city-label ${
+                  isRevealed ? "label-active" : ""
+                }`}
+                style={{ color: isRevealed ? accentColor : undefined }}
+              >
+                {city}
+                {isStart && <tspan className="tag-tspan"> (start)</tspan>}
+                {isGoal && <tspan className="tag-tspan"> (goal)</tspan>}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
 
       <button
         className="replay-btn"
@@ -248,34 +358,38 @@ function App() {
         <div className="results-container">
           {/* Hierarchical A* */}
           <div className="card" style={{ borderTopColor: "#2563eb" }}>
-            <h3 style={{ color: "#2563eb" }}>Hierarchical A*</h3>
-            <div className="card-stats">
-              <span>
-                <strong>Cost:</strong> {result.astar.cost ?? "No path"}
-              </span>
-              <span>
-                <strong>Hops:</strong>{" "}
-                {result.astar.path.length > 0
-                  ? result.astar.path.length - 1
-                  : 0}
-              </span>
+            <div className="card-header">
+              <h3 style={{ color: "#2563eb" }}>Hierarchical A*</h3>
+              <div className="card-stats">
+                <span>
+                  <strong>Cost:</strong> {result.astar.cost ?? "No path"}
+                </span>
+                <span>
+                  <strong>Hops:</strong>{" "}
+                  {result.astar.path.length > 0
+                    ? result.astar.path.length - 1
+                    : 0}
+                </span>
+              </div>
             </div>
-            <PathTree path={result.astar.path} accentColor="#2563eb" />
+            <RomaniaMap path={result.astar.path} accentColor="#2563eb" />
           </div>
 
           {/* BFS */}
           <div className="card" style={{ borderTopColor: "#64748b" }}>
-            <h3 style={{ color: "#64748b" }}>BFS (Uninformed)</h3>
-            <div className="card-stats">
-              <span>
-                <strong>Cost:</strong> {result.bfs.cost ?? "No path"}
-              </span>
-              <span>
-                <strong>Hops:</strong>{" "}
-                {result.bfs.path.length > 0 ? result.bfs.path.length - 1 : 0}
-              </span>
+            <div className="card-header">
+              <h3 style={{ color: "#64748b" }}>BFS (Uninformed)</h3>
+              <div className="card-stats">
+                <span>
+                  <strong>Cost:</strong> {result.bfs.cost ?? "No path"}
+                </span>
+                <span>
+                  <strong>Hops:</strong>{" "}
+                  {result.bfs.path.length > 0 ? result.bfs.path.length - 1 : 0}
+                </span>
+              </div>
             </div>
-            <PathTree path={result.bfs.path} accentColor="#64748b" />
+            <RomaniaMap path={result.bfs.path} accentColor="#64748b" />
           </div>
         </div>
       )}
