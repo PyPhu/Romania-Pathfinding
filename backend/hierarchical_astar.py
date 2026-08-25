@@ -543,9 +543,12 @@ def hierarchy_astar(start_city, goal_city):
         current_group = group_path[i]
         next_group = group_path[i + 1]
 
-        connection = find_group_connection(
+        connection = find_best_group_connection(
+            current_city,
             current_group,
-            next_group
+            next_group,
+            goal_city,
+            goal_group
         )
 
         exit_city = connection["from_city"]
