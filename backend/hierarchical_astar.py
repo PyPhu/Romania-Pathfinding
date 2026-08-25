@@ -376,42 +376,44 @@ def local_astar(start_city, goal_city):
 
 
 # ============================================================
-# 7. Find connection between two groups
+# 7. Find connection between two groups (Upgraded)
 # ============================================================
 
-def find_group_connection(group_a, group_b):
+def find_best_group_connection(current_city, current_group, next_group, goal_city, goal_group):
     """
-    Find the cheapest connection between two groups.
-
-    Returns:
-
-        {
-            "from_city": ...,
-            "to_city": ...,
-            "cost": ...
-        }
+    Find the best connection between two groups by evaluating the actual local path cost.
     """
+    if next_group not in group_edges.get(current_group, {}):
+        raise ValueError(f"No connection between {current_group} and {next_group}")
 
-    if group_b not in group_edges.get(group_a, {}):
-        raise ValueError(
-            f"No connection between group {group_a} and {group_b}"
-        )
-
-    connections = group_edges[group_a][group_b]
-
-    cheapest = min(
-        connections,
-        key=lambda x: x[2]
-    )
-
-    from_city, to_city, cost = cheapest
-
-    return {
-        "from_city": from_city,
-        "to_city": to_city,
-        "cost": cost
-    }
-
+    connections = group_edges[current_group][next_group]
+    
+    best_connection = None
+    best_total_cost = inf
+    
+    for exit_city, entry_city, edge_cost in connections:
+        
+        # 1. Cost from current city to the exit city of this group
+        path_to_exit = local_astar(current_city, exit_city)
+        cost_to_exit = path_to_exit["cost"]
+        
+        # 2. Cost from the entry city to the goal (if the next group is the goal group)
+        cost_to_goal = 0
+        if next_group == goal_group:
+            path_to_goal = local_astar(entry_city, goal_city)
+            cost_to_goal = path_to_goal["cost"]
+            
+        total_estimated_cost = cost_to_exit + edge_cost + cost_to_goal
+        
+        if total_estimated_cost < best_total_cost:
+            best_total_cost = total_estimated_cost
+            best_connection = {
+                "from_city": exit_city,
+                "to_city": entry_city,
+                "cost": edge_cost
+            }
+            
+    return best_connection
 
 # ============================================================
 # 8. Hierarchical A*
