@@ -227,11 +227,12 @@ city_to_group = {
     "Giurgiu": "D",
     "Urziceni": "D",
     "Hirsova": "D",
+    "Eforie": "D",
 
     "Vaslui": "E",
     "Iasi": "E",
     "Neamt": "E",
-    "Eforie": "E"
+    
 }
 
 group_edges = {
