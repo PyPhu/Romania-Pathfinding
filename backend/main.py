@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from hierarchical_astar import hierarchy_astar
 from bfs_BlindSearch import bfs
+from benchmark import benchmark_algorithm
 
 app = FastAPI()
 
@@ -24,14 +25,23 @@ def root():
 
 @app.post("/path")
 def find_path(request: PathfindingRequest):
-    AStar_result = hierarchy_astar(
-        request.start,
-        request.goal
-    )
-    
-    bfs_result = bfs(
+    AStar_result, astar_benchmark = benchmark_algorithm(
+        hierarchy_astar,
         request.start,
         request.goal
     )
 
-    return {"astar": AStar_result, "bfs": bfs_result}
+    bfs_result, bfs_benchmark = benchmark_algorithm(
+        bfs,
+        request.start,
+        request.goal
+    )
+
+    return {
+        "astar": AStar_result,
+        "bfs": bfs_result,
+        "benchmarks": {
+            "astar": astar_benchmark,
+            "bfs": bfs_benchmark
+        }
+    }

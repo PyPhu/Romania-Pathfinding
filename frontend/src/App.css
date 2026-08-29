@@ -237,6 +237,8 @@ h1 {
 
 .card-stats {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 18px;
   font-size: 13px;
   color: var(--text-muted);

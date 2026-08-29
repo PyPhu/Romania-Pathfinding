@@ -81,10 +81,19 @@ interface AlgorithmResult {
   visited?: string[];
 }
 
+interface BenchmarkMetrics {
+  execution_time_ms: number;
+  peak_memory_kb: number;
+}
+
 // โครงสร้าง Response รวมที่ Backend ส่งกลับมา
 interface PathfindingResponse {
   astar: AlgorithmResult;
   bfs: AlgorithmResult;
+  benchmarks: {
+    astar: BenchmarkMetrics;
+    bfs: BenchmarkMetrics;
+  };
 }
 
 const STEP_MS = 500;
@@ -370,6 +379,14 @@ function App() {
                     ? result.astar.path.length - 1
                     : 0}
                 </span>
+                <span>
+                  <strong>Time:</strong>{" "}
+                  {result.benchmarks.astar.execution_time_ms.toFixed(3)} ms
+                </span>
+                <span>
+                  <strong>Peak memory:</strong>{" "}
+                  {result.benchmarks.astar.peak_memory_kb.toFixed(2)} KB
+                </span>
               </div>
             </div>
             <RomaniaMap path={result.astar.path} accentColor="#2563eb" />
@@ -386,6 +403,14 @@ function App() {
                 <span>
                   <strong>Hops:</strong>{" "}
                   {result.bfs.path.length > 0 ? result.bfs.path.length - 1 : 0}
+                </span>
+                <span>
+                  <strong>Time:</strong>{" "}
+                  {result.benchmarks.bfs.execution_time_ms.toFixed(3)} ms
+                </span>
+                <span>
+                  <strong>Peak memory:</strong>{" "}
+                  {result.benchmarks.bfs.peak_memory_kb.toFixed(2)} KB
                 </span>
               </div>
             </div>
