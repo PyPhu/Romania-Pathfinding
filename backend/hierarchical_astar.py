@@ -403,7 +403,10 @@ def local_astar(start_city, goal_city):
 
 def find_best_group_connection(current_city, current_group, next_group, goal_city, goal_group):
     """
-    Find the best connection between two groups by evaluating the actual local path cost.
+    Find the best connection between two groups using heuristic estimation.
+    
+    Instead of running full A* for each connection, we use heuristic distances
+    to estimate the total cost, making this O(n) instead of O(n * A*).
     """
     if next_group not in group_edges.get(current_group, {}):
         raise ValueError(f"No connection between {current_group} and {next_group}")
@@ -415,17 +418,23 @@ def find_best_group_connection(current_city, current_group, next_group, goal_cit
     
     for exit_city, entry_city, edge_cost in connections:
         
-        # 1. Cost from current city to the exit city of this group
-        path_to_exit = local_astar(current_city, exit_city)
-        cost_to_exit = path_to_exit["cost"]
+        # Use heuristic distance instead of full A* for estimation
+        # This is much faster: O(1) lookup instead of O(E log V)
+        heuristic_to_exit = heuristic.get(exit_city, 0)
+        heuristic_from_entry = heuristic.get(entry_city, 0)
         
-        # 2. Cost from the entry city to the goal (if the next group is the goal group)
-        cost_to_goal = 0
+        # Estimate cost using heuristic difference
+        estimated_cost_to_exit = heuristic.get(current_city, 0) - heuristic_to_exit
+        
+        estimated_cost_to_goal = 0
         if next_group == goal_group:
-            path_to_goal = local_astar(entry_city, goal_city)
-            cost_to_goal = path_to_goal["cost"]
-            
-        total_estimated_cost = cost_to_exit + edge_cost + cost_to_goal
+            estimated_cost_to_goal = heuristic_from_entry - heuristic.get(goal_city, 0)
+        
+        # Clamp negative values (heuristic can be lower in some cases)
+        estimated_cost_to_exit = max(0, estimated_cost_to_exit)
+        estimated_cost_to_goal = max(0, estimated_cost_to_goal)
+        
+        total_estimated_cost = estimated_cost_to_exit + edge_cost + estimated_cost_to_goal
         
         if total_estimated_cost < best_total_cost:
             best_total_cost = total_estimated_cost
