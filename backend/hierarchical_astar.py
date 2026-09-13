@@ -1,5 +1,6 @@
 import heapq
 from math import inf
+from functools import lru_cache
 
 from graphAstar import (
     graph,
@@ -298,23 +299,24 @@ def group_astar(start_group, goal_group):
 
 
 # ============================================================
-# 6. A* inside one group
+# 6. A* inside one group (with caching)
 # ============================================================
 
-def local_astar(start_city, goal_city):
+@lru_cache(maxsize=1024)
+def _local_astar_cached(start_city, goal_city):
     """
-    Normal A* search inside the city graph.
-
-    This searches the whole graph, but is used to calculate
-    the local path between two cities.
+    Cached version of local A* that returns tuple for hashability.
+    
+    Returns:
+        (tuple(path), cost, tuple(visited_nodes))
     """
 
     if start_city == goal_city:
-        return {
-            "path": [start_city],
-            "cost": 0,
-            "visited_nodes": []
-        }
+        return (
+            (start_city,),
+            0,
+            ()
+        )
 
     open_set = []
 
@@ -363,11 +365,11 @@ def local_astar(start_city, goal_city):
 
             path.reverse()
 
-            return {
-                "path": path,
-                "cost": g_score[goal_city],
-                "visited_nodes": visited_nodes
-            }
+            return (
+                tuple(path),
+                g_score[goal_city],
+                tuple(visited_nodes)
+            )
 
         for neighbor, edge_cost in graph[current_city].items():
 
@@ -395,6 +397,25 @@ def local_astar(start_city, goal_city):
     raise ValueError(
         f"No path found from {start_city} to {goal_city}"
     )
+
+
+def local_astar(start_city, goal_city):
+    """
+    Normal A* search inside the city graph with automatic caching.
+
+    This searches the whole graph, but is used to calculate
+    the local path between two cities.
+    
+    Results are cached to avoid recalculation of the same paths.
+    """
+
+    path_tuple, cost, visited_nodes_tuple = _local_astar_cached(start_city, goal_city)
+
+    return {
+        "path": list(path_tuple),
+        "cost": cost,
+        "visited_nodes": list(visited_nodes_tuple)
+    }
 
 
 # ============================================================
