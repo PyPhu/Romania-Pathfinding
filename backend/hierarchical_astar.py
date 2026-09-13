@@ -9,6 +9,13 @@ from graphAstar import (
     group_edges,
 )
 
+# ============================================================
+# CACHING LAYER - Memoization for performance
+# ============================================================
+
+_group_graph_cache = None
+_group_heuristics_cache = {}
+
 
 # ============================================================
 # 1. Find which group a city belongs to
@@ -52,6 +59,7 @@ def validate_city(city):
 def build_group_graph():
     """
     Convert group_edges into a simple graph between groups.
+    Cached after first build for performance.
 
     Example:
 
@@ -64,6 +72,11 @@ def build_group_graph():
     If there are multiple connections between two groups,
     keep the cheapest one.
     """
+
+    global _group_graph_cache
+
+    if _group_graph_cache is not None:
+        return _group_graph_cache
 
     group_graph = {
         group_id: {}
@@ -88,6 +101,7 @@ def build_group_graph():
                 "to_city": city_b,
             }
 
+    _group_graph_cache = group_graph
     return group_graph
 
 
@@ -106,7 +120,14 @@ def calculate_group_distances(goal_group):
 
     Because this is the exact shortest group distance,
     it is admissible as a heuristic.
+
+    Results are cached to avoid recalculation.
     """
+
+    global _group_heuristics_cache
+
+    if goal_group in _group_heuristics_cache:
+        return _group_heuristics_cache[goal_group]
 
     group_graph = build_group_graph()
 
@@ -146,6 +167,7 @@ def calculate_group_distances(goal_group):
                     (new_distance, neighbor_group)
                 )
 
+    _group_heuristics_cache[goal_group] = distances
     return distances
 
 
