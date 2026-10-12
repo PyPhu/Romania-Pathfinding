@@ -34,7 +34,7 @@ def benchmark_algorithm(
             tracemalloc.stop()
 
     metrics = {
-        "execution_time_ms": round(elapsed_ns / 1_000_000, 3),
+        "execution_time_ms": elapsed_ns / 1_000_000,
         "peak_memory_kb": round(peak_memory_bytes / 1024, 2),
     }
 
