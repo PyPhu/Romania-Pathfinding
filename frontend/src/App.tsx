@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
-import { allEdges, cityByName, citySpecs, edgeDistance, localPathfinding, type Algorithm, type CityName, type PathfindingResponse } from "./lib/pathfinding";
+import { allEdges, cityByName, citySpecs, edgeDistance, type Algorithm, type CityName, type PathfindingResponse } from "./lib/pathfinding";
 import "./App.css";
 
 const MAP_WIDTH = 1822;
@@ -97,21 +97,21 @@ function App() {
       const isLocalHost = ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
       const apiUrl = import.meta.env.VITE_API_URL
         ?? (import.meta.env.DEV || isLocalHost ? `http://${window.location.hostname}:8000` : undefined);
-      let data = localPathfinding(from, to);
-      if (apiUrl) {
-        try {
-          const response = await fetch(`${apiUrl.replace(/\/$/, "")}/path`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ start: from, goal: to }), signal: controller.signal,
-          });
-          if (!response.ok) throw new Error("Service unavailable");
-          const remote = await response.json() as PathfindingResponse;
-          if (!validResponse(remote, from, to)) throw new Error("Invalid route");
-          data = { ...remote, source: "backend" };
-        } catch { /* The complete graph is available locally when the service is unavailable. */ }
-      }
+      if (!apiUrl) throw new Error("The route service is not configured. Please contact the site administrator.");
+      const response = await fetch(`${apiUrl.replace(/\/$/, "")}/path`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ start: from, goal: to }), signal: controller.signal,
+      });
+      if (!response.ok) throw new Error("The route service is unavailable. Please try again later.");
+      const data = await response.json() as PathfindingResponse;
+      if (!validResponse(data, from, to)) throw new Error("The route service returned an invalid route. Please try again later.");
       if (request.current !== controller) return;
       setResult(data); setReplayKey((key) => key + 1);
+    } catch (error) {
+      if (request.current !== controller) return;
+      setError(error instanceof Error && ["The route service is not configured. Please contact the site administrator.", "The route service is unavailable. Please try again later.", "The route service returned an invalid route. Please try again later."].includes(error.message)
+        ? error.message
+        : "Unable to reach the route service. Please try again later.");
     } finally {
       window.clearTimeout(timer);
       if (request.current === controller) { request.current = null; setLoading(false); }
@@ -128,14 +128,10 @@ function App() {
   const distanceDifference = result ? (result.bfs.cost ?? 0) - (result.astar.cost ?? 0) : 0;
   const visitedCities = activeResult?.visited ?? activeResult?.visited_nodes;
   const visitedCount = visitedCities ? new Set(visitedCities).size : null;
-  const searchCountLabel = result?.source === "backend"
-    ? algorithm === "bfs" ? "Cities discovered" : "Cities in search log"
-    : "Cities examined";
-  const searchCountNote = result?.source === "backend"
-    ? algorithm === "bfs"
-      ? "Counts all cities added to the search queue, including cities outside your route."
-      : "Counts unique cities in the partial search log. The full exploration count is unavailable."
-    : "Counts unique cities examined during the search, including cities outside your route.";
+  const searchCountLabel = algorithm === "bfs" ? "Cities discovered" : "Cities in search log";
+  const searchCountNote = algorithm === "bfs"
+    ? "Counts all cities added to the search queue, including cities outside your route."
+    : "Counts unique cities in the partial search log. The full exploration count is unavailable.";
   const activeBenchmark = result?.benchmarks[algorithm];
   const searchTime = activeBenchmark?.execution_time_ms;
   const searchTimeLabel = searchTime == null ? "Unavailable"
@@ -230,7 +226,7 @@ function App() {
               <div><strong>{cityByName[city].label}</strong><small>{cityByName[city].landmark}</small></div><span className="leg-distance">{index ? `${edgeDistance(activePath[index-1],city)} km` : "Start"}</span>
             </li>)}</ol>
             <button className="replay-button" onClick={() => { if (isAnimating) { window.clearInterval(animationTimer.current); setRevealed(activePath.length); } else { setRevealed(0); setReplayKey((k) => k+1); } }}><Icon name="play" width="16" height="16" />{isAnimating ? "Show full route" : "Replay journey"}</button>
-            <details className="search-details"><summary>Search details</summary><dl><div><dt>Search time</dt><dd>{searchTimeLabel}</dd></div><div><dt>Peak memory</dt><dd>{activeBenchmark?.peak_memory_kb != null ? `${activeBenchmark.peak_memory_kb.toFixed(2)} KB` : "Unavailable"}</dd></div><div><dt>{searchCountLabel}</dt><dd>{visitedCount ?? "Unavailable"}</dd></div></dl>{visitedCount != null && <p>{searchCountNote}</p>}{result.source === "local" && <p>Using browser calculations. Memory measurements require the route service.</p>}<p>{algorithm === "astar" ? "Hierarchy A* uses distance estimates to guide the route search." : "Breadth-first search minimizes the number of connections, regardless of their distances."}</p></details>
+            <details className="search-details"><summary>Search details</summary><dl><div><dt>Search time</dt><dd>{searchTimeLabel}</dd></div><div><dt>Peak memory</dt><dd>{activeBenchmark?.peak_memory_kb != null ? `${activeBenchmark.peak_memory_kb.toFixed(2)} KB` : "Unavailable"}</dd></div><div><dt>{searchCountLabel}</dt><dd>{visitedCount ?? "Unavailable"}</dd></div></dl>{visitedCount != null && <p>{searchCountNote}</p>}<p>{algorithm === "astar" ? "Hierarchy A* uses distance estimates to guide the route search." : "Breadth-first search minimizes the number of connections, regardless of their distances."}</p></details>
           </section> : <div className="empty-state"><div className="empty-icon"><Icon name="compass" width="32" height="32" /></div><h3>Every journey starts somewhere.</h3><p>Select landmarks on the map, or try the classic route.</p><button className="example-button" onClick={() => void findPath(undefined,"Arad","Bucharest")}>Arad <span>→</span> Bucharest <Icon name="arrow" width="16" height="16" /></button></div>}
           <p className="atlas-note">An exploration of the classic 20-city search problem. Distances follow the teaching graph; connections are schematic.</p>
         </aside>
